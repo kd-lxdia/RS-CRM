@@ -1,0 +1,1533 @@
+generator client {
+  provider        = "prisma-client-js"
+}
+
+datasource db {
+  provider   = "sqlite"
+  url        = env("DATABASE_URL")
+}
+
+// 1. User
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  password         String
+  name             String
+  phone            String?
+  role             String
+  dealerId         String?
+  zoneId           String?
+  isActive         Boolean   @default(true)
+  language         String    @default("en")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lastLoginAt      DateTime?
+  profilePhoto     String?
+  monthlySalary    Float     @default(0)
+
+  dealer           Dealer?   @relation("UserDealer", fields: [dealerId], references: [id])
+  zone             Zone?     @relation(fields: [zoneId], references: [id])
+  
+  // Inverse relations
+  adminDealers     Dealer[]  @relation("DealerAdmin")
+  campaigns        Campaign[]
+  campaignTemplates CampaignTemplate[]
+  rawLeadsAssigned RawLead[]
+  salesLeads       Lead[]    @relation("SalesAssigned")
+  callingLeads     Lead[]    @relation("CallingAssigned")
+  callsMade        CallLog[]
+  visitsAssigned   Visit[]   @relation("VisitAssigned")
+  visitsScheduled  Visit[]   @relation("VisitScheduled")
+  proposalsCreated SolarProposal[]
+  salesCustomers   Customer[] @relation("CustomerSales")
+  docCustomers     Customer[] @relation("CustomerDoc")
+  instCustomers    Customer[] @relation("CustomerInst")
+  accCustomers     Customer[] @relation("CustomerAcc")
+  documents        Document[]
+  invoices         Invoice[]
+  payments         Payment[]
+  docChecklists    DocumentationChecklist[]
+  surveys          SiteSurvey[]
+  stockTx          StockTransaction[]
+  dispatches       Dispatch[]
+  notifications    Notification[]
+  timelineEvents   TimelineEvent[]
+  escalationsAssigned EscalationLog[] @relation("EscalationAssigned")
+  escalationsNotified EscalationLog[] @relation("EscalationNotified")
+  attendanceLogs   AttendanceLog[]
+  dailyAttendances DailyAttendance[]
+  tasksCreated     Task[]    @relation("TaskCreator")
+  tasksAssigned    Task[]    @relation("TaskAssignee")
+  
+  // Team hierarchy relations
+  hierarchy        TeamHierarchy? @relation("HierarchyUser")
+  subordinates     TeamHierarchy[] @relation("HierarchySupervisor")
+  
+  // Performance snapshots relation
+  performanceSnapshots PerformanceSnapshot[] @relation("UserPerformanceSnapshots")
+  
+  // AI Voice campaigns
+  aiVoiceCampaigns AIVoiceCampaign[]
+
+  // Travel Logs
+  travelLogs       TravelLog[]
+
+  @@index([role])
+  @@index([dealerId])
+  @@index([isActive])
+}
+
+// 2. Dealer
+model Dealer {
+  id               String    @id @default(uuid())
+  companyName      String
+  contactName      String
+  email            String
+  phone            String
+  address          String
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  adminUserId      String?
+
+  adminUser        User?     @relation("DealerAdmin", fields: [adminUserId], references: [id])
+  users            User[]    @relation("UserDealer")
+  campaigns        Campaign[]
+  templates        CampaignTemplate[]
+  rawLeads         RawLead[]
+  leads            Lead[]
+  customers        Customer[]
+  stockItems       StockItem[]
+  aiVoiceCampaigns AIVoiceCampaign[]
+
+  @@index([isActive])
+}
+
+// 3. Zone
+model Zone {
+  id               String    @id @default(uuid())
+  name             String
+  coordinates      Json      // JSON polygon
+  city             String
+  parentZoneId     String?
+
+  parentZone       Zone?     @relation("ParentChildZone", fields: [parentZoneId], references: [id])
+  childZones       Zone[]    @relation("ParentChildZone")
+  users            User[]
+  leads            Lead[]
+  customers        Customer[]
+}
+
+// 4. Campaign
+model Campaign {
+  id               String    @id @default(uuid())
+  name             String
+  type             String
+  status           String @default("DRAFT")
+  templateId       String
+  createdBy        String
+  dealerId         String?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  totalContacts    Int       @default(0)
+  sent             Int       @default(0)
+  delivered        Int       @default(0)
+  opened           Int       @default(0)
+  failed           Int       @default(0)
+
+  template         CampaignTemplate @relation(fields: [templateId], references: [id])
+  creator          User      @relation(fields: [createdBy], references: [id])
+  dealer           Dealer?   @relation(fields: [dealerId], references: [id])
+  rawLeads         RawLead[]
+
+  @@index([status])
+  @@index([dealerId])
+}
+
+// 5. CampaignTemplate
+model CampaignTemplate {
+  id               String    @id @default(uuid())
+  name             String
+  type             String
+  subject          String?
+  body             String
+  variables        Json      // JSON array of string
+  createdBy        String
+  dealerId         String?
+
+  creator          User      @relation(fields: [createdBy], references: [id])
+  dealer           Dealer?   @relation(fields: [dealerId], references: [id])
+  campaigns        Campaign[]
+
+  @@index([dealerId])
+}
+
+// 6. RawLead
+model RawLead {
+  id               String    @id @default(uuid())
+  name             String
+  phone            String
+  email            String?
+  address          String?
+  city             String?
+  pincode          String?
+  source           String
+  campaignId       String?
+  assignedTo       String?
+  status           String @default("NEW")
+  priority         String @default("WARM")
+  followUpAt       DateTime?
+  dealerId         String?
+  createdAt        DateTime  @default(now())
+
+  campaign         Campaign? @relation(fields: [campaignId], references: [id])
+  assignee         User?     @relation(fields: [assignedTo], references: [id])
+  dealer           Dealer?   @relation(fields: [dealerId], references: [id])
+  leads            Lead[]
+  timelineEvents   TimelineEvent[]
+  aiVoiceCalls     AIVoiceCall[]
+
+  @@index([status])
+  @@index([assignedTo])
+  @@index([dealerId])
+}
+
+// 7. Lead
+model Lead {
+  id                   String    @id @default(uuid())
+  leadCode             String    @unique
+  rawLeadId            String
+  customerId           String?   
+  name                 String
+  phone                String
+  email                String?
+  address              String?
+  city                 String?
+  pincode              String?
+  lat                  Float?
+  lng                  Float?
+  assignedSalesperson  String
+  assignedCallingStaff String?
+  zoneId               String
+  status               String @default("NEW")
+  priority             String @default("WARM")
+  dealerId             String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  lostReason           String?
+  notes                String?
+  mapLink              String?
+  followUpDate         DateTime?
+  visitDate            String?
+  visitTime            String?
+
+  rawLead              RawLead   @relation(fields: [rawLeadId], references: [id])
+  salesperson          User      @relation("SalesAssigned", fields: [assignedSalesperson], references: [id])
+  callingStaff         User?     @relation("CallingAssigned", fields: [assignedCallingStaff], references: [id])
+  zone                 Zone      @relation(fields: [zoneId], references: [id])
+  dealer               Dealer?   @relation(fields: [dealerId], references: [id])
+  
+  // Handled relation loop: Customer has `leadId`, and Lead has `customerId`.
+  // Customer uses `leadId`, so we establish bidirectional relationship without `@unique` conflicts.
+  customer             Customer? @relation("CustomerLeads", fields: [customerId], references: [id])
+  
+  visits               Visit[]
+  proposals            SolarProposal[]
+  documents            Document[]
+  timelineEvents       TimelineEvent[]
+
+  @@index([status])
+  @@index([assignedSalesperson])
+  @@index([assignedCallingStaff])
+  @@index([dealerId])
+  @@index([customerId])
+}
+
+// 8. CallLog
+model CallLog {
+  id               String    @id @default(uuid())
+  entityType       String
+  entityId         String
+  calledBy         String
+  callType         String
+  disposition      String
+  notes            String?
+  followUpAt       DateTime?
+  duration         Int?      // seconds
+  createdAt        DateTime  @default(now())
+
+  caller           User      @relation(fields: [calledBy], references: [id])
+
+  @@index([entityId, entityType])
+}
+
+// 9. Visit
+model Visit {
+  id               String    @id @default(uuid())
+  leadId           String?
+  customerId       String?
+  visitType        String
+  scheduledAt      DateTime
+  scheduledEndAt   DateTime
+  address          String
+  lat              Float?
+  lng              Float?
+  status           String @default("SCHEDULED")
+  assignedTo       String
+  scheduledBy      String
+  checkInAt        DateTime?
+  checkInLat       Float?
+  checkInLng       Float?
+  checkInDistance  Float?
+  notes            String?
+  createdAt        DateTime  @default(now())
+
+  lead             Lead?     @relation(fields: [leadId], references: [id])
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  assignee         User      @relation("VisitAssigned", fields: [assignedTo], references: [id])
+  scheduler        User      @relation("VisitScheduled", fields: [scheduledBy], references: [id])
+
+  siteSurveys      SiteSurvey[]
+  attendanceLogs   AttendanceLog[]
+
+  @@index([status])
+  @@index([assignedTo])
+  @@index([leadId])
+  @@index([customerId])
+}
+
+// 10. SolarProposal
+model SolarProposal {
+  id               String    @id @default(uuid())
+  leadId           String
+  customerId       String?
+  createdBy        String
+  arka360ProjectId String?
+  arka360Url       String?
+  systemSizeKw     Float
+  panelBrand       String
+  panelModel       String
+  panelCount       Int
+  panelWattage     Int
+  inverterBrand    String
+  inverterModel    String
+  inverterCapacity Float
+  structureType    String
+  legs             Int?
+  isDCR            Boolean   @default(false)
+  roofType         String
+  annualGeneration Float?
+  co2Savings       Float?
+  totalCost        Float
+  hardwareCost     Float?    @default(0)
+  structureCost    Float?    @default(0)
+  labourCost       Float?    @default(0)
+  transportationCost Float?  @default(0)
+  netMeteringCost  Float?    @default(0)
+  grossProfit      Float?    @default(0)
+  marginPercentage Float?    @default(0)
+  subsidyAmount    Float?
+  subsidyScheme    String?
+  loanApplicable   Boolean   @default(false)
+  loanAmount       Float?
+  loanTenure       Int?
+  emi              Float?
+  netCost          Float
+  status           String @default("DRAFT")
+  sentAt           DateTime?
+  createdAt        DateTime  @default(now())
+  model3dUrl       String?
+
+  // Versioning
+  versionNumber    Int       @default(1)
+  isActive         Boolean   @default(true)
+  parentProposalId String?
+  acceptedAt       DateTime?
+
+  // Public sharing
+  publicToken          String?   @unique
+  publicTokenExpiresAt DateTime?
+  viewCount            Int       @default(0)
+  lastViewedAt         DateTime?
+
+  lead             Lead      @relation(fields: [leadId], references: [id])
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  creator          User      @relation(fields: [createdBy], references: [id])
+  parentProposal   SolarProposal? @relation("ProposalRevisions", fields: [parentProposalId], references: [id])
+  revisions        SolarProposal[] @relation("ProposalRevisions")
+  chatbotConversations ChatbotConversation[]
+
+  @@index([status])
+  @@index([leadId])
+  @@index([isActive])
+  @@index([versionNumber])
+}
+
+// 11. Customer
+model Customer {
+  id                    String    @id @default(uuid())
+  customerCode          String    @unique
+  leadId                String?
+  name                  String
+  phone                 String
+  altPhone              String?
+  email                 String?
+  address               String
+  city                  String
+  pincode               String
+  lat                   Float?
+  lng                   Float?
+  aadhaarNumber         String?
+  electricityConsumerNo String?
+  sanctionedLoad        Float?
+  zoneId                String
+  assignedSalesperson   String
+  assignedDocumentation String?
+  assignedInstallation  String?
+  assignedAccountant    String?
+  dealerId              String?
+  status                String @default("ACTIVE")
+  designStatus          String @default("PENDING")
+  structureCompleted    Boolean   @default(false)
+  moduleMounted         Boolean   @default(false)
+  dcWiringCompleted     Boolean   @default(false)
+  acWiringCompleted     Boolean   @default(false)
+  inverterInstalled     Boolean   @default(false)
+  qcStatus              String    @default("PENDING")
+  overrideDispatch      Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  leads                 Lead[]    @relation("CustomerLeads")
+  zone                  Zone      @relation(fields: [zoneId], references: [id])
+  salesperson           User      @relation("CustomerSales", fields: [assignedSalesperson], references: [id])
+  documentationUser     User?     @relation("CustomerDoc", fields: [assignedDocumentation], references: [id])
+  installationUser      User?     @relation("CustomerInst", fields: [assignedInstallation], references: [id])
+  accountantUser        User?     @relation("CustomerAcc", fields: [assignedAccountant], references: [id])
+  dealer                Dealer?   @relation(fields: [dealerId], references: [id])
+
+  visits                Visit[]
+  proposals             SolarProposal[]
+  documents             Document[]
+  invoices              Invoice[]
+  payments              Payment[]
+  docChecklist          DocumentationChecklist?
+  siteSurveys           SiteSurvey[]
+  bomItems              BOMItem[]
+  stockTransactions     StockTransaction[]
+  dispatches            Dispatch[]
+  timelineEvents        TimelineEvent[]
+  escalationLogs        EscalationLog[]
+
+  @@index([status])
+  @@index([dealerId])
+  @@index([assignedSalesperson])
+}
+
+// 12. Document
+model Document {
+  id               String    @id @default(uuid())
+  customerId       String
+  leadId           String?
+  type             String
+  url              String
+  uploadedBy       String
+  createdAt        DateTime  @default(now())
+
+  customer         Customer  @relation(fields: [customerId], references: [id])
+  lead             Lead?     @relation(fields: [leadId], references: [id])
+  uploader         User      @relation(fields: [uploadedBy], references: [id])
+
+  @@index([customerId])
+  @@index([leadId])
+}
+
+// 13. Invoice
+model Invoice {
+  id               String    @id @default(uuid())
+  invoiceNumber    String    @unique
+  customerId       String
+  items            Json      // array of {name, qty, unit, rate, amount}
+  subtotal         Float
+  gst              Float
+  totalAmount      Float
+  paidAmount       Float     @default(0)
+  dueAmount        Float
+  status           String @default("DRAFT")
+  sentAt           DateTime?
+  dueDate          DateTime?
+  createdAt        DateTime  @default(now())
+  generatedBy      String
+
+  customer         Customer  @relation(fields: [customerId], references: [id])
+  generator        User      @relation(fields: [generatedBy], references: [id])
+  payments         Payment[]
+
+  @@index([status])
+  @@index([customerId])
+}
+
+// 14. Payment
+model Payment {
+  id               String    @id @default(uuid())
+  customerId       String
+  invoiceId        String?
+  amount           Float
+  paymentDate      DateTime
+  mode             String
+  transactionRef   String?
+  milestone        String
+  recordedBy       String
+  notes            String?
+  createdAt        DateTime  @default(now())
+
+  customer         Customer  @relation(fields: [customerId], references: [id])
+  invoice          Invoice?  @relation(fields: [invoiceId], references: [id])
+  recorder         User      @relation(fields: [recordedBy], references: [id])
+
+  @@index([customerId])
+  @@index([invoiceId])
+}
+
+// 15. DocumentationChecklist
+model DocumentationChecklist {
+  id                  String    @id @default(uuid())
+  customerId          String    @unique
+  pmSuryaAppNo        String?
+  pmSuryaStatus       String @default("PENDING")
+  cmSchemeApplicable  Boolean   @default(false)
+  cmSchemeAppNo       String?
+  cmSchemeStatus      String @default("PENDING")
+  loanApplicable      Boolean   @default(false)
+  loanAppNo           String?
+  loanStatus          String @default("NA")
+  netMeteringAppNo    String?
+  netMeteringStatus   String @default("PENDING")
+  assignedTo          String
+  completedAt         DateTime?
+  updatedAt           DateTime  @updatedAt
+
+  customer            Customer  @relation(fields: [customerId], references: [id])
+  assignee            User      @relation(fields: [assignedTo], references: [id])
+
+  @@index([assignedTo])
+}
+
+// 16. SiteSurvey
+model SiteSurvey {
+  id               String    @id @default(uuid())
+  customerId       String
+  visitId          String
+  conductedBy      String
+  roofDimensions   Json      // JSON structure
+  roofType         String
+  shadowAnalysis   String?
+  panelCount       Int
+  inverterCount    Int
+  inverterModel    String
+  structureDetails String?
+  cableLength      Float?
+  earthingRequired Boolean   @default(true)
+  specialNotes     String?
+  bomGenerated     Boolean   @default(false)
+  isBOMApproved    Boolean   @default(false)
+  completedAt      DateTime?
+
+  customer         Customer  @relation(fields: [customerId], references: [id])
+  visit            Visit     @relation(fields: [visitId], references: [id])
+  conductor        User      @relation(fields: [conductedBy], references: [id])
+  bomItems         BOMItem[]
+
+  @@index([customerId])
+}
+
+// 17. BOMItem
+model BOMItem {
+  id               String    @id @default(uuid())
+  siteSurveyId     String
+  customerId       String
+  itemName         String
+  sku              String
+  category         String
+  quantity         Float
+  unit             String
+  status           String @default("PENDING")
+
+  siteSurvey       SiteSurvey @relation(fields: [siteSurveyId], references: [id])
+  customer         Customer   @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@index([status])
+}
+
+// 18. StockItem
+model StockItem {
+  id                 String    @id @default(uuid())
+  name               String
+  sku                String    @unique
+  category           String
+  quantity           Float     @default(0)
+  unit               String
+  lowStockThreshold  Float     @default(10)
+  dealerId           String?
+
+  dealer             Dealer?   @relation(fields: [dealerId], references: [id])
+  transactions       StockTransaction[]
+
+  @@index([dealerId])
+}
+
+// 19. StockTransaction
+model StockTransaction {
+  id               String    @id @default(uuid())
+  stockItemId      String
+  type             String
+  quantity         Float
+  reference        String?
+  notes            String?
+  performedBy      String
+  customerId       String?
+  createdAt        DateTime  @default(now())
+
+  stockItem        StockItem @relation(fields: [stockItemId], references: [id])
+  performer        User      @relation(fields: [performedBy], references: [id])
+  customer         Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([stockItemId])
+}
+
+// 20. Dispatch
+model Dispatch {
+  id               String    @id @default(uuid())
+  customerId       String
+  dispatchedBy     String
+  items            Json      // array of dispatched items
+  status           String @default("PENDING")
+  dispatchedAt     DateTime?
+  notes            String?
+
+  customer         Customer  @relation(fields: [customerId], references: [id])
+  dispatcher       User      @relation(fields: [dispatchedBy], references: [id])
+
+  @@index([customerId])
+  @@index([status])
+}
+
+// 21. Notification
+model Notification {
+  id               String    @id @default(uuid())
+  userId           String
+  type             String
+  title            String
+  message          String
+  isRead           Boolean   @default(false)
+  entityType       String?
+  entityId         String?
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+// 22. TimelineEvent
+model TimelineEvent {
+  id               String    @id @default(uuid())
+  customerId       String?
+  leadId           String?
+  rawLeadId        String?
+  eventType        String
+  description      String
+  performedBy      String?
+  metadata         Json?
+  createdAt        DateTime  @default(now())
+
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  lead             Lead?     @relation(fields: [leadId], references: [id])
+  rawLead          RawLead?  @relation(fields: [rawLeadId], references: [id])
+  performer        User?     @relation(fields: [performedBy], references: [id])
+
+  @@index([customerId])
+  @@index([leadId])
+  @@index([rawLeadId])
+}
+
+// 23. EscalationLog
+model EscalationLog {
+  id               String    @id @default(uuid())
+  // Legacy fields for backward compatibility
+  customerId       String?
+  taskType         String?
+  delayDays        Int?
+  notifiedAt       DateTime  @default(now())
+  resolved         Boolean   @default(false)
+  
+  // New team management fields
+  taskId           String?   // Reference to Task model
+  fromUserId       String    // User who had the task (assignedTo in legacy)
+  toUserId         String    // Supervisor receiving escalation (notifiedTo in legacy)
+  escalationLevel  Int       @default(1) // Positive integer for escalation level
+  reason           String    @default("OVERDUE_TASK") // Escalation reason
+  triggeredAt      DateTime  @default(now()) // When escalation was triggered
+  resolvedAt       DateTime? // When escalation was resolved
+  status           String @default("PENDING") // PENDING, ACKNOWLEDGED, RESOLVED
+
+  // Relations
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  task             Task?     @relation(fields: [taskId], references: [id])
+  assignee         User      @relation("EscalationAssigned", fields: [fromUserId], references: [id])
+  notifier         User      @relation("EscalationNotified", fields: [toUserId], references: [id])
+
+  @@index([customerId])
+  @@index([taskId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([status])
+  @@index([escalationLevel])
+  @@index([triggeredAt])
+}
+
+// 24. AttendanceLog
+model AttendanceLog {
+  id               String    @id @default(uuid())
+  userId           String
+  visitId          String
+  checkInAt        DateTime  @default(now())
+  lat              Float
+  lng              Float
+  distance         Float?
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id])
+  visit            Visit     @relation(fields: [visitId], references: [id])
+
+  @@index([userId])
+  @@index([visitId])
+}
+
+// 24.5. DailyAttendance
+model DailyAttendance {
+  id               String    @id @default(uuid())
+  userId           String
+  date             String    // Format: YYYY-MM-DD
+  status           String    // 'PRESENT', 'ABSENT'
+  checkInAt        DateTime?
+  lat              Float?
+  lng              Float?
+  locationType     String?   // 'OFFICE', 'SITE'
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+
+// 24.6. Holiday
+model Holiday {
+  id        String   @id @default(uuid())
+  date      String   @unique // Format: YYYY-MM-DD
+  name      String
+  createdAt DateTime @default(now())
+}
+
+// 25. ChatbotConversation
+model ChatbotConversation {
+  id              String   @id @default(cuid())
+  proposalId      String
+  proposal        SolarProposal @relation(fields: [proposalId], references: [id])
+  userMessage     String
+  botResponse     String
+  language        String
+  wasOutOfScope   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  
+  @@index([proposalId])
+  @@index([createdAt])
+}
+
+// 26. Task
+model Task {
+  id               String    @id @default(uuid())
+  title            String
+  description      String?
+  priority         String @default("MEDIUM")
+  status           String @default("TODO")
+  dueDate          DateTime?
+  createdBy        String
+  assignedTo       String?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  creator          User      @relation("TaskCreator", fields: [createdBy], references: [id])
+  assignee         User?     @relation("TaskAssignee", fields: [assignedTo], references: [id])
+  escalations      EscalationLog[] // Escalations for this task
+
+  @@index([createdBy])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+}
+
+// 27. TeamHierarchy
+model TeamHierarchy {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  supervisorId     String?
+  level            Int       @default(0)
+  path             String    @default("/")
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user             User      @relation("HierarchyUser", fields: [userId], references: [id], onDelete: Cascade)
+  supervisor       User?     @relation("HierarchySupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+
+  @@index([supervisorId])
+  @@index([level])
+  @@index([path])
+  @@index([isActive])
+  @@map("team_hierarchy")
+}
+
+// 28. PerformanceSnapshot
+model PerformanceSnapshot {
+  id                   String    @id @default(uuid())
+  userId               String
+  snapshotDate         DateTime
+  taskCompletionRate   Float     // 0-100 percentage
+  averageResponseTime  Float     // in hours, must be positive
+  overdueTaskCount     Int       @default(0)
+  qualityScore         Float     // 0-10 scale
+  calculatedAt         DateTime  @default(now())
+  createdAt            DateTime  @default(now())
+
+  user                 User      @relation("UserPerformanceSnapshots", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([snapshotDate])
+  @@index([calculatedAt])
+  @@unique([userId, snapshotDate])
+  @@map("performance_snapshots")
+}
+
+// 29. AIVoiceCampaign
+model AIVoiceCampaign {
+  id               String    @id @default(uuid())
+  name             String
+  description      String?
+  scriptTemplate   String
+  createdBy        String
+  dealerId         String?
+  status           String @default("DRAFT")
+  totalCalls       Int       @default(0)
+  completedCalls   Int       @default(0)
+  successfulCalls  Int       @default(0)
+  failedCalls      Int       @default(0)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  creator          User      @relation(fields: [createdBy], references: [id])
+  dealer           Dealer?   @relation(fields: [dealerId], references: [id])
+  calls            AIVoiceCall[]
+
+  @@index([createdBy])
+  @@index([dealerId])
+  @@index([status])
+}
+
+// 30. AIVoiceCall
+model AIVoiceCall {
+  id                   String    @id @default(uuid())
+  campaignId           String
+  name                 String
+  phone                String
+  email                String?
+  city                 String?
+  address              String?
+  status               String @default("PENDING")
+  disposition          String?
+  callDuration         Int?      // seconds
+  transcript           String?
+  conversationLogs     Json?
+  sessionId            String?
+  recordingUrl         String?
+  qualificationScore   Int?
+  propertyOwnership    Boolean?
+  monthlyBill          Float?
+  interestLevel        String?
+  timeline             String?
+  notes                String?
+  convertedToRawLead   Boolean   @default(false)
+  rawLeadId            String?
+  scheduledAt          DateTime?
+  calledAt             DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  campaign             AIVoiceCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  rawLead              RawLead?  @relation(fields: [rawLeadId], references: [id])
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([phone])
+  @@index([rawLeadId])
+}
+
+// 31. SystemSetting
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+// 32. TravelLog
+model TravelLog {
+  id              String   @id @default(uuid())
+  userId          String
+  date            DateTime
+  totalDistanceKm Float
+  petrolAmount    Float
+  status          String @default("PENDING")
+  routeDetails    Json
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([date])
+  @@index([status])
+}
+
+// ================================
+// SLAR 2.0 EPC CONTROL LAYER
+// These models are intentionally additive so the original SLAR CRM data stays intact.
+// IDs reference existing records without Prisma relations to avoid destabilising legacy flows.
+// ================================
+
+model EpcLeadControl {
+  id                  String   @id @default(uuid())
+  leadId              String   @unique
+  mobile              String
+  caNumber            String?
+  customerNameKey     String
+  addressKey          String?
+  sourceDetail        String?
+  nextFollowUpAt      DateTime?
+  missedFollowUpAt    DateTime?
+  hotScore            Int      @default(0)
+  isHot               Boolean  @default(false)
+  lostReason          String?
+  duplicateGroupKey   String?
+  duplicateFields     Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([mobile])
+  @@index([caNumber])
+  @@index([customerNameKey])
+  @@index([duplicateGroupKey])
+  @@index([nextFollowUpAt])
+  @@map("epc_lead_controls")
+}
+
+model EpcProject {
+  id                         String          @id @default(uuid())
+  projectCode                String          @unique
+  leadId                     String?
+  customerId                 String?
+  customerSnapshot           Json?
+  acceptedProposalId         String?
+  projectValue               Float           @default(0)
+  advanceRequiredAmount      Float           @default(0)
+  advanceReceivedAmount      Float           @default(0)
+  stage                      String @default("PROJECT_CREATED")
+  projectOwnerId             String?
+  salesOwnerId               String?
+  executionOwnerId           String?
+  documentationOwnerId       String?
+  installationOwnerId        String?
+  accountsOwnerId            String?
+  nextAction                 String?
+  nextActionOwnerId          String?
+  nextActionDueAt            DateTime?
+  projectDeadlineAt          DateTime?
+  paymentGateStatus          String   @default("BLOCKED")
+  dispatchGateStatus         String   @default("BLOCKED")
+  documentationGateStatus    String   @default("BLOCKED")
+  installationGateStatus     String   @default("BLOCKED")
+  delayReason                String?
+  delayOwnerDepartment       String?
+  deadlineBreachedAt         DateTime?
+  createdAfterAdvanceAt      DateTime?
+  createdBy                  String
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+
+  @@index([leadId])
+  @@index([customerId])
+  @@index([stage])
+  @@index([paymentGateStatus])
+  @@index([dispatchGateStatus])
+  @@index([nextActionDueAt])
+  @@map("epc_projects")
+}
+
+model EpcSurveyControl {
+  id                    String             @id @default(uuid())
+  projectId             String
+  visitId               String?
+  assignedSurveyorId    String?
+  bookedAt              DateTime?
+  plannedAt             DateTime?
+  completedAt           DateTime?
+  notCompletedReason    String?
+  roofOrGroundType      String?
+  locationLat           Float?
+  locationLng           Float?
+  locationProofUrl      String?
+  sitePhotoUrls         Json?
+  connectedLoadKw       Float?
+  sanctionedLoadKw      Float?
+  caNumber              String?
+  shadowStatus          String @default("PENDING")
+  shadowNotes           String?
+  structureRequirement  String?
+  checklist             Json?
+  isChecklistComplete   Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([projectId])
+  @@index([assignedSurveyorId])
+  @@index([plannedAt])
+  @@map("epc_survey_controls")
+}
+
+model EpcDesignControl {
+  id              String   @id @default(uuid())
+  projectId       String   @unique
+  requiredStatus  String   @default("REQUIRED")
+  status          String   @default("PENDING")
+  designOwnerId   String?
+  designDueAt     DateTime?
+  assignedAt      DateTime?
+  completedAt     DateTime?
+  designUrl       String?
+  notes           String?
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([designOwnerId])
+  @@index([designDueAt])
+  @@map("epc_design_controls")
+}
+
+model EpcQuotationCostSheet {
+  id                         String            @id @default(uuid())
+  projectId                  String?
+  leadId                     String?
+  proposalId                 String?
+  revisionNo                 Int               @default(1)
+  moduleBrand                String
+  moduleWattage              Int
+  moduleType                 String?
+  inverterBrand              String
+  inverterKw                 Float
+  structureCost              Float             @default(0)
+  moduleCost                 Float             @default(0)
+  inverterCost               Float             @default(0)
+  labourIcCost               Float             @default(0)
+  transportationCost         Float             @default(0)
+  netMeteringCost            Float             @default(0)
+  subsidyProcessingCost      Float             @default(0)
+  otherCost                  Float             @default(0)
+  totalCost                  Float             @default(0)
+  sellingPrice               Float             @default(0)
+  grossProfit                Float             @default(0)
+  marginPercent              Float             @default(0)
+  lowMarginThresholdPercent  Float             @default(12)
+  lowMarginWarning           Boolean           @default(false)
+  founderApprovalStatus      String @default("NOT_REQUIRED")
+  founderApprovedBy          String?
+  founderApprovedAt          DateTime?
+  founderApprovalRemarks     String?
+  sentAt                     DateTime?
+  isActive                   Boolean           @default(true)
+  createdBy                  String
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
+
+  @@index([projectId])
+  @@index([leadId])
+  @@index([proposalId])
+  @@index([founderApprovalStatus])
+  @@map("epc_quotation_cost_sheets")
+}
+
+model EpcBom {
+  id                  String            @id @default(uuid())
+  projectId           String
+  surveyControlId     String?
+  revisionNo          Int               @default(1)
+  previousBomId       String?
+  status              String @default("PENDING")
+  approvedBy          String?
+  approvedAt          DateTime?
+  lockedAt            DateTime?
+  lockedBy            String?
+  revisionReason      String?
+  dispatchReadiness   String     @default("BLOCKED")
+  shortageSummary     Json?
+  createdBy           String
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([projectId])
+  @@index([previousBomId])
+  @@index([status])
+  @@index([dispatchReadiness])
+  @@map("epc_boms")
+}
+
+model EpcBomLine {
+  id             String           @id @default(uuid())
+  bomId          String
+  itemType       String
+  itemName       String
+  sku            String
+  brand          String?
+  wattage        Int?
+  dcrType        String?
+  quantity       Float
+  unit           String
+  approvedQty    Float            @default(0)
+  issuedQty      Float            @default(0)
+  returnedQty    Float            @default(0)
+  damagedQty     Float            @default(0)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([bomId])
+  @@index([sku])
+  @@index([itemType])
+  @@map("epc_bom_lines")
+}
+
+model EpcInventorySerial {
+  id                 String           @id @default(uuid())
+  stockItemId        String?
+  sku                String
+  itemType           String
+  brand              String?
+  model              String?
+  wattage            Int?
+  dcrType            String?
+  serialNumber       String           @unique
+  projectId          String?
+  customerId         String?
+  status             String           @default("IN_STOCK")
+  receivedAt         DateTime?
+  issuedAt           DateTime?
+  returnedAt         DateTime?
+  damagedAt          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([sku])
+  @@index([projectId])
+  @@index([customerId])
+  @@index([status])
+  @@map("epc_inventory_serials")
+}
+
+model EpcMaterialMovement {
+  id                 String           @id @default(uuid())
+  projectId          String
+  customerId         String?
+  bomId              String?
+  movementType       String
+  challanNumber      String?
+  items              Json
+  receiverName       String?
+  receiverPhone      String?
+  receiverProofUrl   String?
+  sitePhotoUrls      Json?
+  vehicleNumber      String?
+  extraMaterial      Boolean          @default(false)
+  extraApprovalStatus String @default("NOT_REQUIRED")
+  extraApprovedBy    String?
+  damageReason       String?
+  returnReason       String?
+  performedBy        String
+  performedAt        DateTime         @default(now())
+  createdAt          DateTime         @default(now())
+
+  @@index([projectId])
+  @@index([customerId])
+  @@index([movementType])
+  @@index([challanNumber])
+  @@map("epc_material_movements")
+}
+
+model EpcPaymentMilestonePlan {
+  id                  String        @id @default(uuid())
+  projectId           String
+  milestone           String
+  expectedAmount      Float
+  receivedAmount      Float         @default(0)
+  dueAt               DateTime?
+  isAdvance           Boolean       @default(false)
+  isFinal             Boolean       @default(false)
+  status              String        @default("PENDING")
+  lockedAt            DateTime?
+  lockedBy            String?
+  overdueAt           DateTime?
+  reminderSentAt      DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@index([dueAt])
+  @@map("epc_payment_milestone_plans")
+}
+
+model EpcActualProjectCost {
+  id          String   @id @default(uuid())
+  projectId   String
+  category    String
+  amount      Float
+  source      String?
+  reference   String?
+  notes       String?
+  recordedBy  String
+  recordedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([category])
+  @@map("epc_actual_project_costs")
+}
+
+model EpcFounderOverride {
+  id             String         @id @default(uuid())
+  projectId      String?
+  entityType     String
+  entityId       String
+  reason         String
+  requestedBy    String
+  approvedBy     String?
+  status         String @default("PENDING")
+  approvedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([projectId])
+  @@index([entityType])
+  @@index([status])
+  @@map("epc_founder_overrides")
+}
+
+model EpcInstallationControl {
+  id                         String             @id @default(uuid())
+  projectId                  String             @unique
+  installationTeamId          String?
+  plannedInstallationAt       DateTime?
+  actualInstallationAt        DateTime?
+  structureStatus             String @default("PENDING")
+  moduleMountingStatus        String @default("PENDING")
+  dcWiringStatus              String @default("PENDING")
+  acWiringStatus              String @default("PENDING")
+  inverterInstallationStatus  String @default("PENDING")
+  earthingStatus              String @default("PENDING")
+  testingStatus               String @default("PENDING")
+  handoverStatus              String @default("PENDING")
+  mandatoryPhotoUrls          Json?
+  delayReason                 String?
+  delayOwnerDepartment        String?
+  qcStatus                    String @default("PENDING")
+  qcDoneBy                    String?
+  qcDoneAt                    DateTime?
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+
+  @@index([plannedInstallationAt])
+  @@index([qcStatus])
+  @@map("epc_installation_controls")
+}
+
+model EpcPunchPoint {
+  id              String             @id @default(uuid())
+  projectId       String
+  installationId  String?
+  title           String
+  ownerDepartment String
+  ownerUserId     String?
+  status          String @default("PENDING")
+  severity        String             @default("MEDIUM")
+  dueAt           DateTime?
+  closedAt        DateTime?
+  proofUrl        String?
+  createdBy       String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+  @@index([ownerDepartment])
+  @@map("epc_punch_points")
+}
+
+model EpcSubsidyTracker {
+  id                         String             @id @default(uuid())
+  projectId                  String             @unique
+  customerId                 String?
+  caNumber                   String?
+  subsidyId                  String?
+  b2cClaimId                 String?
+  dcrCertificateStatus        String @default("PENDING")
+  customerDocsStatus          String @default("PENDING")
+  firstStageApplicationStatus String @default("PENDING")
+  discomApprovalStatus        String @default("PENDING")
+  netMeterFileStatus          String @default("PENDING")
+  inspectionStatus            String @default("PENDING")
+  netMeterInstalledStatus     String @default("PENDING")
+  subsidyClaimSubmittedStatus String @default("PENDING")
+  subsidyReceivedStatus       String @default("PENDING")
+  currentStage                String   @default("CUSTOMER_DOCS")
+  delayReason                 String?
+  delayOwnerDepartment        String?
+  assignedTo                  String?
+  completedAt                 DateTime?
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
+
+  @@index([customerId])
+  @@index([currentStage])
+  @@index([assignedTo])
+  @@map("epc_subsidy_trackers")
+}
+
+model EpcAuditLog {
+  id              String         @id @default(uuid())
+  entityType      String
+  entityId        String
+  action          String
+  oldValue        Json?
+  newValue        Json?
+  changedBy       String
+  changedAt       DateTime       @default(now())
+  approvalId      String?
+  ipAddress       String?
+  userAgent       String?
+
+  @@index([entityType, entityId])
+  @@index([changedBy])
+  @@index([changedAt])
+  @@map("epc_audit_logs")
+}
+
+model EpcFounderDailySnapshot {
+  id                           String   @id @default(uuid())
+  snapshotDate                 String   @unique
+  dailyLeads                   Int      @default(0)
+  missedFollowUps              Int      @default(0)
+  siteVisitsPlanned            Int      @default(0)
+  siteVisitsDone               Int      @default(0)
+  quotationsSent               Int      @default(0)
+  lowMarginQuotations          Int      @default(0)
+  advanceReceivedAmount        Float    @default(0)
+  dispatchCount                Int      @default(0)
+  materialReturnCount          Int      @default(0)
+  criticalPaymentPendingCount  Int      @default(0)
+  materialStuckCount           Int      @default(0)
+  installationStuckCount       Int      @default(0)
+  netMeteringStuckCount        Int      @default(0)
+  qcPendingCount               Int      @default(0)
+  lateAttendanceCount          Int      @default(0)
+  designPendingCount           Int      @default(0)
+  openPunchPointCount          Int      @default(0)
+  redAlerts                    Json?
+  departmentAccountability     Json?
+  autoSummary                  String?
+  generatedAt                  DateTime @default(now())
+
+  @@map("epc_founder_daily_snapshots")
+}
+
+model B2bParty {
+  id              String   @id @default(uuid())
+  partyName       String
+  firmName        String
+  gstNumber       String?
+  billingAddress  String
+  shippingAddress String
+  contactPerson   String
+  phone           String
+  email           String?
+  creditTerms     String?
+  materialInterest String?
+  assignedSalespersonId String?
+  isActive        Boolean  @default(true)
+  createdBy       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  pis             B2bPi[]
+
+  @@index([phone])
+  @@index([gstNumber])
+  @@index([assignedSalespersonId])
+  @@map("b2b_parties")
+}
+
+model B2bPriceListItem {
+  id            String   @id @default(uuid())
+  sku           String   @unique
+  category      String
+  itemName      String
+  brand         String?
+  model         String?
+  wattage       Int?
+  capacity      Float?
+  dcrType       String?
+  unit          String   @default("Nos")
+  basePrice     Float
+  gstPercent    Float    @default(18)
+  isActive      Boolean  @default(true)
+  createdBy     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  lines         B2bPiLine[]
+
+  @@index([category])
+  @@index([brand])
+  @@map("b2b_price_list_items")
+}
+
+model B2bPi {
+  id                    String      @id @default(uuid())
+  piNumber              String      @unique
+  piDate                DateTime    @default(now())
+  validityDate          DateTime
+  partyId               String
+  salespersonId         String
+  status                String @default("DRAFT")
+  approvalStatus        String @default("DRAFT")
+  maxAdjustmentPercent  Float       @default(2)
+  maxLineAdjustmentPercent Float    @default(0)
+  marginImpactAmount    Float       @default(0)
+  subtotal              Float       @default(0)
+  gstAmount             Float       @default(0)
+  freightAmount         Float       @default(0)
+  totalAmount           Float       @default(0)
+  paymentTerms          String?
+  dispatchTimeline      String?
+  pdfUrl                String?
+  sentAt                DateTime?
+  approvalReason        String?
+  approvedBy            String?
+  approvedAt            DateTime?
+  approvalRemark        String?
+  revisionNo            Int         @default(1)
+  previousPiId          String?
+  createdBy             String
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  party                 B2bParty    @relation(fields: [partyId], references: [id])
+  lines                 B2bPiLine[]
+  audits                B2bPiAuditLog[]
+
+  @@index([partyId])
+  @@index([salespersonId])
+  @@index([status])
+  @@index([approvalStatus])
+  @@map("b2b_pis")
+}
+
+model B2bPiLine {
+  id                  String  @id @default(uuid())
+  piId                String
+  priceListItemId     String
+  sku                 String
+  materialDescription String
+  brand               String?
+  model               String?
+  wattage             Int?
+  capacity            Float?
+  dcrType             String?
+  quantity            Float
+  unit                String
+  basePrice           Float
+  adjustmentPercent   Float   @default(0)
+  finalPrice          Float
+  gstPercent          Float   @default(18)
+  lineSubtotal        Float
+  lineGst             Float
+  lineTotal           Float
+  adjustmentReason    String?
+  marginImpactAmount  Float   @default(0)
+
+  pi                  B2bPi   @relation(fields: [piId], references: [id])
+  priceListItem       B2bPriceListItem @relation(fields: [priceListItemId], references: [id])
+
+  @@index([piId])
+  @@index([sku])
+  @@map("b2b_pi_lines")
+}
+
+model B2bPiAuditLog {
+  id          String            @id @default(uuid())
+  piId        String
+  action      String
+  oldValue    Json?
+  newValue    Json?
+  reason      String?
+  changedBy   String
+  changedAt   DateTime          @default(now())
+
+  pi          B2bPi             @relation(fields: [piId], references: [id])
+
+  @@index([piId])
+  @@index([changedBy])
+  @@index([action])
+  @@map("b2b_pi_audit_logs")
+}
+
+// AI Brain: multi-LLM call log + self-learning feedback store
+model AiBrainLog {
+  id         String   @id @default(uuid())
+  feature    String
+  provider   String
+  model      String
+  prompt     String
+  response   String
+  success    Boolean  @default(true)
+  errorMsg   String?
+  latencyMs  Int?
+  rating     Int?
+  correction String?
+  createdBy  String?
+  createdAt  DateTime @default(now())
+
+  @@index([feature])
+  @@index([rating])
+}

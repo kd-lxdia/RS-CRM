@@ -1,0 +1,127 @@
+.notification-drawer .ant-drawer-body {
+  padding: 0;
+  background: #fafafa;
+}
+
+.dark .notification-drawer .ant-drawer-body {
+  background: #141414;
+}
+
+.notification-item {
+  padding: 16px !important;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+  margin: 0;
+}
+
+.notification-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.notification-item.unread {
+  background-color: #e6f4ff !important;
+  border-left: 4px solid #1890ff;
+}
+
+.dark .notification-item {
+  border-bottom-color: #303030;
+}
+
+.dark .notification-item:hover {
+  background-color: #1f1f1f !important;
+}
+
+.dark .notification-item.unread {
+  background-color: #111b26 !important;
+  border-left-color: #1890ff;
+}
+
+.notification-item .ant-list-item-meta-avatar {
+  margin-right: 12px;
+}
+
+.notification-item .ant-list-item-action {
+  margin-left: 8px;
+}
+
+.notification-badge {
+  animation: pulse 2s infinite;
+}
+
+.notification-demo-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 0;
+}
+
+.notification-demo-section .ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.notification-empty-state {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.notification-header {
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 16px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.dark .notification-header {
+  background: #1f1f1f;
+  border-bottom-color: #303030;
+}
+
+.notification-list-container {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Custom scrollbar */
+.notification-list-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-list-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.notification-list-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.notification-list-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.dark .notification-list-container::-webkit-scrollbar-track {
+  background: #2f2f2f;
+}
+
+.dark .notification-list-container::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark .notification-list-container::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}

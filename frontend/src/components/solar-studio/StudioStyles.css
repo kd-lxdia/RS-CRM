@@ -1,0 +1,618 @@
+/* =============================================================================
+   Solar Design Studio — Styles
+   ============================================================================= */
+
+.studio-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: #0f1117;
+  color: #e2e8f0;
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* ─── Top Bar ───────────────────────────────────────────────────────────────── */
+
+.studio-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  min-height: 48px;
+  padding: 0 16px;
+  background: #1a1d27;
+  border-bottom: 1px solid #2a2d3a;
+  z-index: 100;
+}
+
+.studio-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.studio-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.studio-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.studio-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.view-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-btn:hover {
+  background: #2a2d3a;
+  color: #e2e8f0;
+}
+
+.view-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #2563eb;
+}
+
+.topbar-action-btn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #2a2d3a;
+  background: #1e2030;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.topbar-action-btn:hover {
+  background: #2a2d3a;
+  color: #e2e8f0;
+}
+
+.topbar-action-btn.solar-access-btn {
+  background: linear-gradient(135deg, #f59e0b22, #f59e0b08);
+  border-color: #f59e0b44;
+  color: #f59e0b;
+}
+
+.topbar-action-btn.solar-access-btn:hover {
+  background: linear-gradient(135deg, #f59e0b33, #f59e0b15);
+}
+
+.topbar-action-btn.save-btn {
+  background: linear-gradient(135deg, #10b98122, #10b98108);
+  border-color: #10b98144;
+  color: #10b981;
+}
+
+/* ─── Main Layout ───────────────────────────────────────────────────────────── */
+
+.studio-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Left Toolbar ──────────────────────────────────────────────────────────── */
+
+.studio-left-toolbar {
+  display: flex;
+  flex-direction: column;
+  width: 52px;
+  min-width: 52px;
+  background: #1a1d27;
+  border-right: 1px solid #2a2d3a;
+  padding: 8px 6px;
+  gap: 2px;
+  z-index: 50;
+  /* Removed overflow-y: auto to prevent clipping of absolute submenus */
+}
+
+.tool-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.tool-btn:hover {
+  background: #2a2d3a;
+  color: #e2e8f0;
+}
+
+.tool-btn.active {
+  background: #3b82f622;
+  color: #3b82f6;
+  box-shadow: inset 0 0 0 1.5px #3b82f644;
+}
+
+.tool-btn .tool-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.tool-divider {
+  height: 1px;
+  background: #2a2d3a;
+  margin: 4px 2px;
+}
+
+/* Tool sub-menu */
+.tool-submenu {
+  position: absolute;
+  left: 48px;
+  top: 0;
+  background: #1e2030;
+  border: 1px solid #2a2d3a;
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 150px;
+  box-shadow: 0 8px 24px #00000066;
+  z-index: 200;
+}
+
+.tool-submenu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.12s;
+}
+
+.tool-submenu-item:hover {
+  background: #2a2d3a;
+  color: #e2e8f0;
+}
+
+/* ─── Canvas Area ───────────────────────────────────────────────────────────── */
+
+.studio-canvas-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #13151d;
+}
+
+.canvas-info-bar {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  background: #1a1d2788;
+  backdrop-filter: blur(12px);
+  border: 1px solid #2a2d3a;
+  border-radius: 8px;
+  padding: 5px 14px;
+  font-size: 11px;
+  color: #64748b;
+  z-index: 30;
+}
+
+.canvas-info-bar span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.drawing-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #3b82f6dd;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 40;
+  animation: pulseHint 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseHint {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ─── Right Panel ───────────────────────────────────────────────────────────── */
+
+.studio-right-panel {
+  width: 320px;
+  min-width: 320px;
+  background: #1a1d27;
+  border-left: 1px solid #2a2d3a;
+  overflow-y: auto;
+  padding: 0;
+  z-index: 50;
+}
+
+.panel-section {
+  padding: 16px;
+  border-bottom: 1px solid #2a2d3a;
+}
+
+.panel-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.panel-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.panel-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.panel-input {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #2a2d3a;
+  background: #13151d;
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.panel-input:focus {
+  border-color: #3b82f6;
+}
+
+.panel-input-sm {
+  width: 70px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid #2a2d3a;
+  background: #13151d;
+  color: #e2e8f0;
+  font-size: 12px;
+  text-align: right;
+  outline: none;
+}
+
+.panel-input-sm:focus {
+  border-color: #3b82f6;
+}
+
+.panel-select {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #2a2d3a;
+  background: #13151d;
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+}
+
+.panel-btn {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #2a2d3a;
+  background: #1e2030;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.panel-btn:hover {
+  background: #2a2d3a;
+}
+
+.panel-btn-primary {
+  background: #3b82f6;
+  border-color: #2563eb;
+  color: white;
+}
+
+.panel-btn-primary:hover {
+  background: #2563eb;
+}
+
+.panel-btn-success {
+  background: #10b981;
+  border-color: #059669;
+  color: white;
+}
+
+.panel-btn-danger {
+  background: #ef444433;
+  border-color: #ef444444;
+  color: #ef4444;
+}
+
+.panel-btn-danger:hover {
+  background: #ef444455;
+}
+
+.quick-az-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid #2a2d3a;
+  background: #13151d;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.quick-az-btn:hover, .quick-az-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* ─── Stats Cards ───────────────────────────────────────────────────────────── */
+
+.stat-card {
+  background: #13151d;
+  border: 1px solid #2a2d3a;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+/* ─── Solar Access Legend ───────────────────────────────────────────────────── */
+
+.solar-access-legend {
+  position: absolute;
+  top: 12px;
+  right: 340px;
+  display: flex;
+  gap: 4px;
+  background: #1a1d2799;
+  backdrop-filter: blur(8px);
+  border: 1px solid #2a2d3a;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 10px;
+  z-index: 30;
+}
+
+.sa-swatch {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: #94a3b8;
+}
+
+.sa-swatch-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* ─── Modal Overlay ─────────────────────────────────────────────────────────── */
+
+.studio-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: #00000088;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+
+.studio-modal {
+  background: #1a1d27;
+  border: 1px solid #2a2d3a;
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 400px;
+  max-width: 500px;
+  box-shadow: 0 20px 60px #000000aa;
+}
+
+.studio-modal h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 16px;
+}
+
+/* ─── MPPT Accordion ────────────────────────────────────────────────────────── */
+
+.mppt-accordion {
+  border: 1px solid #2a2d3a;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.mppt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #13151d;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  transition: background 0.12s;
+}
+
+.mppt-header:hover {
+  background: #1e2030;
+}
+
+.mppt-body {
+  padding: 8px 12px;
+  background: #0f1117;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.string-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.string-valid {
+  background: #10b98122;
+  color: #10b981;
+}
+
+.string-invalid {
+  background: #ef444422;
+  color: #ef4444;
+}
+
+/* ─── Layer checkboxes ──────────────────────────────────────────────────────── */
+
+.layer-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.layer-checkbox input[type="checkbox"] {
+  accent-color: #3b82f6;
+}
+
+.layer-checkbox label {
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+/* ─── Tooltip ───────────────────────────────────────────────────────────────── */
+
+.tool-tooltip {
+  position: absolute;
+  left: 52px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #0f1117;
+  border: 1px solid #2a2d3a;
+  color: #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 4px 12px #00000066;
+}
+
+/* ─── Tree Model Grid ───────────────────────────────────────────────────────── */
+
+.tree-model-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.tree-model-card {
+  border: 2px solid #2a2d3a;
+  border-radius: 6px;
+  padding: 8px 4px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-size: 11px;
+  color: #94a3b8;
+  background: #13151d;
+}
+
+.tree-model-card:hover {
+  border-color: #64748b;
+}
+
+.tree-model-card.selected {
+  border-color: #3b82f6;
+  background: #3b82f611;
+  color: #3b82f6;
+}
+
+.tree-model-icon {
+  font-size: 24px;
+  margin-bottom: 2px;
+}

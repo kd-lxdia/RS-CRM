@@ -38,7 +38,8 @@ async function main() {
   });
 
   // 3. Create Users
-  const passwordHash = await bcrypt.hash('Password@123', 10);
+  // Hosted installs pass SEED_PASSWORD so the seeded accounts don't share a public password.
+  const passwordHash = await bcrypt.hash(process.env.SEED_PASSWORD || 'Password@123', 10);
   
   const users = [
     { email: 'admin@slarcrm.com', name: 'System Admin', role: 'ADMIN', zoneId: createdZones[0].id },

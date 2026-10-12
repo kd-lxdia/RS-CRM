@@ -69,6 +69,9 @@ export const io = initSocket(httpServer);
 import { initVoiceSocket } from './lib/voice-socket';
 initVoiceSocket(io);
 
+// Behind nginx every request arrives from loopback; trust it so rate limits see the real client IP.
+app.set('trust proxy', 'loopback');
+
 // Security: Helmet for security headers
 app.use(helmet({
   contentSecurityPolicy: {

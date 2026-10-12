@@ -113,8 +113,9 @@ log "Building shared + backend"
 (cd shared && npx tsc)
 cd backend
 npx prisma generate
-# The backend has known type errors; tsc still emits JS, and dist/index.js is checked below.
-npx tsc || echo "(tsc reported type errors; continuing with emitted JS)"
+# Emit JS without type-checking: full checking runs out of memory on small instances,
+# and the backend has known type errors (it runs via ts-node --transpile-only locally).
+NODE_OPTIONS=--max-old-space-size=3072 npx tsc --noCheck
 test -f dist/index.js
 DB_EXISTED=false
 [ -f "$DATA_DIR/crm.db" ] && DB_EXISTED=true

@@ -128,10 +128,16 @@ if [ "$DB_EXISTED" = false ]; then
 fi
 cd ..
 
-log "Building frontend (takes a few minutes)"
-(cd frontend && NODE_OPTIONS=--max-old-space-size=3072 npx vite build)
 sudo mkdir -p "$WEB_DIR"
-sudo rsync -a --delete frontend/dist/ "$WEB_DIR/"
+MEM_MB="$(awk '/MemTotal/ {print int($2/1024)}' /proc/meminfo)"
+if [ "${BUILD_FRONTEND:-auto}" = "yes" ] || { [ "${BUILD_FRONTEND:-auto}" = "auto" ] && [ "$MEM_MB" -ge 3500 ]; }; then
+  log "Building frontend (takes a few minutes)"
+  (cd frontend && NODE_OPTIONS=--max-old-space-size=3072 npx vite build)
+  sudo rsync -a --delete frontend/dist/ "$WEB_DIR/"
+else
+  # The Vite build thrashes swap for hours on 1-2 GB instances; build it on a PC instead.
+  log "Skipping frontend build (${MEM_MB} MB RAM). From your PC run: deploy/aws/upload-frontend.sh"
+fi
 
 log "Configuring nginx"
 sudo cp deploy/aws/nginx.conf /etc/nginx/sites-available/rs-crm
